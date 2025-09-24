@@ -104,7 +104,7 @@ def chunk_text(text, chunk_size=30, overlap=5):
     return chunks
 
 def embed_text(text_list):
-    inputs = clip_processor(text=text_list, return_tensors="pt", padding=True)
+    inputs = clip_processor(text=text_list, return_tensors="pt", padding=True, truncation=True).to(device=clip_model.device)
     outputs = clip_model.get_text_features(**inputs)
     return outputs.detach().numpy().astype('float32')
 
