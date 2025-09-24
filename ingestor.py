@@ -146,7 +146,7 @@ def ingest_file(filepath):
 
 # Example usage
 if __name__ == "__main__":
-    ingest_file("files\\Lecture 2.pdf")
+    ingest_file("C:\\Users\\akram\\Downloads\\Flowers.pdf")
     # save metadata_db and index as needed
     print(f"Total vectors in index: {index.ntotal}")
     # Example: Save metadata_db to a file
