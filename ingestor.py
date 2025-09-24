@@ -5,33 +5,54 @@ import numpy as np
 from PIL import Image
 from sentence_transformers import SentenceTransformer
 import torch
-from transformers import CLIPProcessor, CLIPModel, CLIPTokenizer
+from transformers import CLIPProcessor, CLIPModel, CLIPTokenizer, AutoTokenizer
 from docx import Document
 from pypdf import PdfReader
+
+from db_handler import get_next_id, insert_image, insert_text_chunk
 
 # ----------------- Models -----------------
 clip_model_name = "openai/clip-vit-base-patch32"
 clip_model = CLIPModel.from_pretrained(clip_model_name)
 clip_processor = CLIPProcessor.from_pretrained(clip_model_name)
 
-tokenizer = CLIPTokenizer.from_pretrained(clip_model_name) 
+tokenizer = AutoTokenizer.from_pretrained(clip_model_name, use_fast=True)
+
 
 # ----------------- FAISS index -----------------
-dim = 512
-index = faiss.IndexFlatL2(dim)
-metadata_db = {}
-current_id = 0
+index_path = "faiss_index.bin"
+# Checking if index file exists
+if os.path.exists(index_path):
+    index = faiss.read_index(index_path)
+    print("Index loaded. Number of vectors:", index.ntotal)
+else:
+    print("Index file not found. Creating new index...")
+    dim = 512
+    index = faiss.IndexFlatL2(dim)
+    index = faiss.IndexIDMap(index)
 
-def chunk_text_by_tokens(text, chunk_size=70, overlap=15):
-    tokenized = tokenizer(text, add_special_tokens=False)
+def chunk_text_by_tokens(text, chunk_size=70, overlap=10):
+    tokenized = tokenizer(text, add_special_tokens=False, return_offsets_mapping=True)
     input_ids = tokenized['input_ids']
+    offsets = tokenized['offset_mapping']
     chunks = []
     start = 0
     while start < len(input_ids):
-        end = start + chunk_size
+        end = min(start + chunk_size, len(input_ids))
         chunk_ids = input_ids[start:end]
-        chunk_text = tokenizer.decode(chunk_ids, clean_up_tokenization_spaces=True)
-        chunks.append({"chunk": chunk_text, "start_token": start, "end_token": min(end, len(input_ids))})
+        # Map token indices to character offsets
+        char_start = offsets[start][0]
+        char_end = offsets[end-1][1]
+
+        # Slice original text
+        chunk_text = text[char_start:char_end]
+
+        chunks.append({
+            "chunk": chunk_text,
+            "char_start": char_start,
+            "char_end": char_end
+        })
+
         start += (chunk_size - overlap)
     return chunks
    
@@ -44,7 +65,10 @@ def extract_pdf_text_and_images(filepath):
         # Extract text
         text = page.extract_text()
         if text:
-            texts.append(text)
+            texts.append({
+                "text": text,
+                "page": reader.pages.index(page) + 1
+            })
 
     for page_number, page in enumerate(reader.pages, start=1):
         resources = page.get("/Resources")
@@ -80,9 +104,6 @@ def chunk_text(text, chunk_size=30, overlap=5):
     return chunks
 
 def embed_text(text_list):
-    for text in text_list:
-        if len(text) > 512:
-            print(f"Warning: Text chunk exceeds 512 characters and may be truncated: {text[:60]}...")
     inputs = clip_processor(text=text_list, return_tensors="pt", padding=True)
     outputs = clip_model.get_text_features(**inputs)
     return outputs.detach().numpy().astype('float32')
@@ -110,38 +131,23 @@ def ingest_file(filepath):
     for text in texts:
         # Printing chunked text length for debugging
         print(f"Processing text of length {len(text)}")
-        chunks = chunk_text_by_tokens(text)
+        chunks = chunk_text_by_tokens(text["text"])
         print(f"Chunked into {len(chunks)} parts.")
         embs = embed_text([chunk_info["chunk"] for chunk_info in chunks])
         for i, chunk_info in enumerate(chunks):
-            index.add(np.array([embs[i]]))
-            metadata_db[current_id] = {
-                "source": filename,
-                "type": "text",
-                "content": chunk_info["chunk"],
-                "start_token": chunk_info["start_token"],
-                "end_token": chunk_info["end_token"]
-            }
-            current_id += 1
+            faiss_id = get_next_id()
+            index.add_with_ids(np.array([embs[i]]), np.array([faiss_id],dtype='int64'))
+            insert_text_chunk(faiss_id, filename, text["page"], chunk_info["chunk"], chunk_info["char_start"], chunk_info["char_end"])
     for img in images:
         emb = embed_image(img["image"])
-        index.add(np.array([emb]))
-        metadata_db[current_id] = {
-            "source": filename,
-            "type": "image",
-            "page": img.get("page"),
-            "index": img.get("index")
-        }
-        current_id += 1
+        faiss_id = get_next_id()
+        index.add_with_ids(np.array([emb]), np.array([faiss_id], dtype='int64'))
+        insert_image(faiss_id, filename, img.get("page"), img.get("index"), "")  # Assuming no OCR text for now
 
 # Example usage
 if __name__ == "__main__":
-    ingest_file("sample.pdf")
+    ingest_file("files\\Lecture 2.pdf")
     # save metadata_db and index as needed
     print(f"Total vectors in index: {index.ntotal}")
-    print(f"Metadata entries: {len(metadata_db)}")
     # Example: Save metadata_db to a file
-    import json
-    with open("metadata_db.json", "w") as f:
-        json.dump(metadata_db, f)
     faiss.write_index(index, "faiss_index.bin")
