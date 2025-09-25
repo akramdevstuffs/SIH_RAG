@@ -3,33 +3,17 @@ import io
 import faiss
 import numpy as np
 from PIL import Image
-from sentence_transformers import SentenceTransformer
 import torch
-from transformers import CLIPProcessor, CLIPModel, CLIPTokenizer, AutoTokenizer
 from docx import Document
 from pypdf import PdfReader
 
 from db_handler import get_next_id, insert_image, insert_text_chunk
 
-# ----------------- Models -----------------
-clip_model_name = "openai/clip-vit-base-patch32"
-clip_model = CLIPModel.from_pretrained(clip_model_name)
-clip_processor = CLIPProcessor.from_pretrained(clip_model_name)
-
-tokenizer = AutoTokenizer.from_pretrained(clip_model_name, use_fast=True)
-
-
-# ----------------- FAISS index -----------------
 index_path = "faiss_index.bin"
-# Checking if index file exists
-if os.path.exists(index_path):
-    index = faiss.read_index(index_path)
-    print("Index loaded. Number of vectors:", index.ntotal)
-else:
-    print("Index file not found. Creating new index...")
-    dim = 512
-    index = faiss.IndexFlatL2(dim)
-    index = faiss.IndexIDMap(index)
+
+# Load models and tokenizer from models.py
+from models import load_resources
+clip_model, clip_processor, tokenizer, index = load_resources(index_path)
 
 def chunk_text_by_tokens(text, chunk_size=70, overlap=10):
     tokenized = tokenizer(text, add_special_tokens=False, return_offsets_mapping=True)
