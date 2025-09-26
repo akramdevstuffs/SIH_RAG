@@ -28,7 +28,7 @@ function Chat() {
     if (scrollRef.current) {
       scrollRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages]);
+  }, [messages, streamAnswer]); 
 
 
 // setup google chat when it mounts 
@@ -79,7 +79,7 @@ function Chat() {
     {/* chat history  */}
     
       <div className= "flex justify-center">
-        <div className='w-full max-h-[82vh]  overflow-y-scroll '>
+        <div className='w-[full] max-h-[82vh]  overflow-y-scroll '>
       { messages.map((message) => (
         <div className='w-[55vw]'
         key={message.id}>
@@ -107,14 +107,16 @@ function Chat() {
 
 
       {/* Live Gemini Typing */}
+      <div className='w-[55vw]'>
     {streamAnswer && (
-      <div className="flex justify-start mt-1">
+      <div className="flex w justify-start mt-1">
       <div
-      className="p-4 text-white mt-1 rounded-[20px]  max-w-[60%] break-words"
+      className="p-4 text-white mt-1 rounded-[20px]   break-words"
       dangerouslySetInnerHTML={{ __html: marked(streamAnswer) }}
     ></div>
      </div>
      )}
+     </div>
       {chatLoading ? ( <Ripples
                        size="45"
                        speed="2"
