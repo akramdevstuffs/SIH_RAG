@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
+import ChatArea from './components/ChatArea'
 
 
 function App() {
@@ -8,7 +9,7 @@ function App() {
 
   return (
    <div className='flex h-screen items-center justify-center'>
-    <h1 className='text-4xl font-mono'>SIH RAG</h1>
+      <ChatArea/>
    </div>
   )
 }
