@@ -21,22 +21,31 @@ def init_schema():
     conn, c = get_db()
     # Create tables if they don't exist
     c.execute('''
+    CREATE TABLE IF NOT EXISTS files (
+        file_id INTEGER PRIMARY KEY,
+        file_name TEXT,
+        file_path TEXT UNIQUE
+    )
+    ''')
+    c.execute('''
     CREATE TABLE IF NOT EXISTS text_chunks (
         id INTEGER PRIMARY KEY,        -- FAISS ID
-        file_path TEXT,
+        file_id INTEGER,
         page INTEGER,
         chunk_text TEXT,
         char_start INTEGER,
-        char_end INTEGER
-    )
+        char_end INTEGER,
+        FOREIGN KEY(file_id) REFERENCES files(file_id)
+        )
     ''')
     c.execute('''
     CREATE TABLE IF NOT EXISTS images (
         id INTEGER PRIMARY KEY,        -- FAISS ID
-        file_path TEXT,
+        file_id INTEGER,
         page INTEGER,
         image_index INTEGER,
-        ocr_text TEXT
+        ocr_text TEXT,
+        FOREIGN KEY(file_id) REFERENCES files(file_id)
     )
     ''')
     conn.commit()
@@ -44,19 +53,38 @@ def init_schema():
 
 # - -  - -- - - --  Insert Operations --- - - -- - 
 
-def insert_text_chunk(id, file_path, page, chunk_text, char_start, char_end):
+def insert_file(file_name, file_path):
     conn, c = get_db()
     c.execute('''
-    INSERT INTO text_chunks (id, file_path, page, chunk_text, char_start, char_end)
-    VALUES (?, ?, ?, ?, ?, ?)
-    ''', (id, file_path, page, chunk_text, char_start, char_end))
+    INSERT OR IGNORE INTO files (file_name, file_path)
+    VALUES (?, ?)
+    ''', (file_name, file_path))
     conn.commit()
-def insert_image(id, file_path, page, image_index, ocr_text):
+    c.execute('SELECT file_id FROM files WHERE file_path=?', (file_path,))
+    return c.fetchone()[0]
+
+def change_file_path(old_path, new_path):
     conn, c = get_db()
     c.execute('''
-    INSERT INTO images (id, file_path, page, image_index, ocr_text)
+    UPDATE files
+    SET file_path=?
+    WHERE file_path=?
+    ''', (new_path, old_path))
+    conn.commit()
+
+def insert_text_chunk(id, file_id, page, chunk_text, char_start, char_end):
+    conn, c = get_db()
+    c.execute('''
+    INSERT INTO text_chunks (id, file_id, page, chunk_text, char_start, char_end)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ''', (id, file_id, page, chunk_text, char_start, char_end))
+    conn.commit()
+def insert_image(id, file_id, page, image_index, ocr_text):
+    conn, c = get_db()
+    c.execute('''
+    INSERT INTO images (id, file_id, page, image_index, ocr_text)
     VALUES (?, ?, ?, ?, ?)
-    ''', (id, file_path, page, image_index, ocr_text))
+    ''', (id, file_id, page, image_index, ocr_text))
     conn.commit()
 
 # - -  - -- - - --  Query Operations --- - - -- -
