@@ -50,13 +50,13 @@ export function Sidebar() {
 
 
   return (
-    <aside className={`h-screen transition-all duration-300 ease-in-out flex-shrink-0 ${expanded ? 'w-64' : 'w-16'}`}>
+    <aside className={`h-screen transition-all duration-300 ease-in-out flex-shrink-0 ${expanded ? 'w-80' : 'w-16'}`}>
       <nav className="h-full flex flex-col bg-black border-r border-neutral-600 shadow-sm">
         {/* Fixed Header */}
         <div className="p-4 pb-2 flex justify-between items-center flex-shrink-0">
           <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expanded ? "w-32 opacity-100" : "w-0 opacity-0"}`}>
-            <span className="text-white font-bold text-2xl whitespace-nowrap">
-              SynSearch
+            <span className="text-white font-medium  text-xl whitespace-nowrap">
+              Syn Search
             </span>
           </div>
           <button 

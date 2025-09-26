@@ -71,7 +71,7 @@ function Chat() {
 
     // to load gemini api 
     if(loading)
-      return <div className="flex justify-center h-screen items-center text-2xl">ScreenSense AI is Loading...</div>
+      return <div className="flex justify-center h-screen items-center text-2xl">SynSearch is Loading...</div>
 
 
   return (
@@ -86,7 +86,7 @@ function Chat() {
 
         { message.role === "user" ? ( 
           <div className='flex justify-end mt-1'>
-          <div className='p-4 bg-[#222931] text-white rounded-[20px] max-w-[60%] break-words'>
+          <div className='p-4 bg-neutral-700 text-white rounded-[20px] max-w-[60%] break-words'>
             {message.parts[0].text}
           </div>
         </div> ) :
@@ -120,7 +120,7 @@ function Chat() {
       {chatLoading ? ( <Ripples
                        size="45"
                        speed="2"
-                       color="#0F4C75" 
+                       color="grey" 
                     />) : (<div></div>)}
       <div ref={scrollRef} />
         </div>
@@ -130,7 +130,7 @@ function Chat() {
 
     {/* form for input from user */}
     <div className='flex z-10 justify-center'>
-    <form className='fixed bottom-9 w-fit p-2 border-1 border-white/40 rounded-[20px] '
+    <form className='fixed bottom-9 w-fit p-2 border-1 border-white/60 rounded-[20px] '
     onSubmit={(e) => {
       console.log("submit")
       setChatLoading(true);
@@ -143,7 +143,7 @@ function Chat() {
       className='p-1 px-2 border-none text-white/60 w-[50vw] outline-none text-xl'
       value={query}
       onChange={(e)=> setQuery(e.target.value)} />
-      <button type="submit" className='px-2 py-1 border-white/40 text-white/50 border-1 rounded-[50%]'><i className="ri-arrow-up-line 
+      <button type="submit" className='px-2 py-1 border-white/60 text-white/50 border-1 rounded-[50%]'><i className="ri-arrow-up-line 
         text-2xl"></i></button>
     </form>
     </div>
