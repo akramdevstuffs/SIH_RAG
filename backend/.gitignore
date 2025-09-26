@@ -1,5 +1,7 @@
 venv
 files/**
+# To files dir in git
+!files/.gitkeep
 metadata.db
 faiss_index.bin
 __pycache__
