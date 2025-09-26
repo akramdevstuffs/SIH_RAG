@@ -3,33 +3,17 @@ import io
 import faiss
 import numpy as np
 from PIL import Image
-from sentence_transformers import SentenceTransformer
 import torch
-from transformers import CLIPProcessor, CLIPModel, CLIPTokenizer, AutoTokenizer
 from docx import Document
 from pypdf import PdfReader
 
-from db_handler import get_next_id, insert_image, insert_text_chunk
+from db_handler import get_next_id, insert_image, insert_text_chunk, insert_file, change_file_path
 
-# ----------------- Models -----------------
-clip_model_name = "openai/clip-vit-base-patch32"
-clip_model = CLIPModel.from_pretrained(clip_model_name)
-clip_processor = CLIPProcessor.from_pretrained(clip_model_name)
-
-tokenizer = AutoTokenizer.from_pretrained(clip_model_name, use_fast=True)
-
-
-# ----------------- FAISS index -----------------
 index_path = "faiss_index.bin"
-# Checking if index file exists
-if os.path.exists(index_path):
-    index = faiss.read_index(index_path)
-    print("Index loaded. Number of vectors:", index.ntotal)
-else:
-    print("Index file not found. Creating new index...")
-    dim = 512
-    index = faiss.IndexFlatL2(dim)
-    index = faiss.IndexIDMap(index)
+
+# Load models and tokenizer from models.py
+from models import load_resources
+clip_model, clip_processor, tokenizer, index = load_resources(index_path)
 
 def chunk_text_by_tokens(text, chunk_size=70, overlap=10):
     tokenized = tokenizer(text, add_special_tokens=False, return_offsets_mapping=True)
@@ -80,8 +64,20 @@ def extract_pdf_text_and_images(filepath):
                     try:
                         img_data = obj.get_data()
                         img = Image.open(io.BytesIO(img_data))
+
+                        # Ensure RGB
                         if img.mode != "RGB":
                             img = img.convert("RGB")
+
+                        # Force proper HxWxC shape if it's a NumPy array
+                        img_array = np.array(img)
+                        if img_array.ndim == 2:  # grayscale
+                            img_array = np.stack([img_array]*3, axis=-1)
+                            img = Image.fromarray(img_array)
+                        elif img_array.shape[0] == 1:  # singleton first dim
+                            img_array = img_array.squeeze(0)
+                            img = Image.fromarray(img_array)
+
                         images.append({
                             "image": img,
                             "page": page_number,
@@ -92,7 +88,7 @@ def extract_pdf_text_and_images(filepath):
                         continue
     return texts, images
 
-def chunk_text(text, chunk_size=30, overlap=5):
+def chunk_text(text, chunk_size=30, overlap=10):
     words = text.split()
     chunks = []
     for i in range(0, len(words), chunk_size - overlap):
@@ -100,7 +96,7 @@ def chunk_text(text, chunk_size=30, overlap=5):
         # convert word indices to character indices
         start_char = len(" ".join(words[:i])) + (1 if i != 0 else 0)
         end_char = start_char + len(chunk)
-        chunks.append({"chunk": chunk, "start": start_char, "end": end_char})
+        chunks.append({"chunk": chunk, "char_start": start_char, "char_end": end_char})
     return chunks
 
 def embed_text(text_list):
@@ -109,11 +105,17 @@ def embed_text(text_list):
     return outputs.detach().numpy().astype('float32')
 
 def embed_image(image):
+    # Ensure RGB PIL image
     if image.mode != "RGB":
         image = image.convert("RGB")
-    inputs = clip_processor(images=image, return_tensors="pt").to(device=clip_model.device)
+
+    # Wrap in a list for the processor
+    inputs = clip_processor(images=[image], return_tensors="pt").to(device=clip_model.device)
+
     with torch.no_grad():
         emb = clip_model.get_image_features(**inputs)
+
+    # embeddings come as batch, take first
     return emb.cpu().numpy()[0]
 
 
@@ -127,26 +129,30 @@ def ingest_file(filepath):
         texts, images = extract_pdf_text_and_images(filepath)
     else:
         raise ValueError("Unsupported file type")
+
+    file_id = insert_file(filename, filepath)
+    print(f"Inserted file with ID: {file_id}")
+
+    for img in images:
+        emb = embed_image(img["image"])
+        faiss_id = get_next_id()
+        index.add_with_ids(np.array([emb]), np.array([faiss_id], dtype='int64'))
+        insert_image(faiss_id, file_id, img.get("page"), img.get("index"), "")  # Assuming no OCR text for now
     
     for text in texts:
         # Printing chunked text length for debugging
         print(f"Processing text of length {len(text)}")
-        chunks = chunk_text_by_tokens(text["text"])
+        chunks = chunk_text(text["text"])
         print(f"Chunked into {len(chunks)} parts.")
         embs = embed_text([chunk_info["chunk"] for chunk_info in chunks])
         for i, chunk_info in enumerate(chunks):
             faiss_id = get_next_id()
             index.add_with_ids(np.array([embs[i]]), np.array([faiss_id],dtype='int64'))
-            insert_text_chunk(faiss_id, filename, text["page"], chunk_info["chunk"], chunk_info["char_start"], chunk_info["char_end"])
-    for img in images:
-        emb = embed_image(img["image"])
-        faiss_id = get_next_id()
-        index.add_with_ids(np.array([emb]), np.array([faiss_id], dtype='int64'))
-        insert_image(faiss_id, filename, img.get("page"), img.get("index"), "")  # Assuming no OCR text for now
+            insert_text_chunk(faiss_id, file_id, text["page"], chunk_info["chunk"], chunk_info["char_start"], chunk_info["char_end"])
 
 # Example usage
 if __name__ == "__main__":
-    ingest_file("C:\\Users\\akram\\Downloads\\Flowers.pdf")
+    ingest_file("files\\sample_novel.pdf")
     # save metadata_db and index as needed
     print(f"Total vectors in index: {index.ntotal}")
     # Example: Save metadata_db to a file
