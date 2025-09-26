@@ -1,16 +1,18 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-
+import React from 'react';
+import { Sidebar } from './components/Sidebar';
+import { FileProvider } from './components/FileProvider';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-   <div className='flex h-screen items-center justify-center'>
-    <h1 className='text-4xl font-mono'>SIH RAG</h1>
-   </div>
-  )
+    <FileProvider>
+      <div className='flex h-screen '>
+        <Sidebar />
+        <div className='flex-1 flex items-center justify-center'>
+          <h1 className='text-4xl font-mono text-black'>SIH RAG</h1>
+        </div>
+      </div>
+    </FileProvider>
+  );
 }
 
-export default App
+export default App;
