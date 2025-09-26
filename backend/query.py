@@ -4,7 +4,7 @@ from PIL import Image
 
 from db_handler import insert_text_chunk, insert_image, get_next_id, get_metadata_by_faiss_id
 
-def query_index(query_text, top_k=5):
+def query_text(query_text, top_k=5):
     # 1. Embed the query (returns shape (1, 512))
     query_emb = embed_text([query_text])[0]  
     
@@ -52,8 +52,8 @@ def query_image(image, top_k=5):
 # only for testing
 if __name__ == "__main__":
     query = "robot"
-    results = query_index(query)
-    img_file = "files\\sample_query_img.png"  
+    results = query_text(query)
+    img_file = "files\\sample_img.png"  
     img = Image.open(img_file)
     
 
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     while True:
         q = input("Enter your query (or 'exit' to quit): ")
         while q.lower() != 'exit':
-            results = query_index(q)
+            results = query_text(q)
             print("Text Query Results:")
             for res in results:
                 print(res)

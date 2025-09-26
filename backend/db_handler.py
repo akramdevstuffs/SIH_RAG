@@ -94,12 +94,40 @@ def get_metadata_by_faiss_id(faiss_id):
     c.execute("SELECT * FROM text_chunks WHERE id=?", (faiss_id,))
     result = c.fetchone()
     if result:
-        return {"type": "text", **dict(zip([c[0] for c in c.description], result))}
+        # Update file_id to file_name, file_path 
+        file_id = result[1]
+        c.execute("SELECT file_name, file_path FROM files WHERE file_id=?", (file_id,))
+        file_info = c.fetchone()
+        metadata = {
+            "type": "text_chunk",
+            "faiss_id": result[0],
+            "file_id": file_id,
+            "file_name": file_info[0] if file_info else None,
+            "file_path": file_info[1] if file_info else None,
+            "page": result[2],
+            "chunk_text": result[3],
+            "char_start": result[4],
+            "char_end": result[5]
+        }
+        return metadata
 
     c.execute("SELECT * FROM images WHERE id=?", (faiss_id,))
     result = c.fetchone()
     if result:
-        return {"type": "image", **dict(zip([col[0] for col in c.description], result))}
+        file_id = result[1]
+        c.execute("SELECT file_name, file_path FROM files WHERE file_id=?", (file_id,))
+        file_info = c.fetchone()
+        metadata = {
+            "type": "image",
+            "faiss_id": result[0],
+            "file_id": file_id,
+            "file_name": file_info[0] if file_info else None,
+            "file_path": file_info[1] if file_info else None,
+            "page": result[2],
+            "image_index": result[3],
+            "ocr_text": result[4]
+        }
+        return metadata
     return None
 
 def get_next_id():

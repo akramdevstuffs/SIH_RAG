@@ -1,5 +1,5 @@
 venv
-files/
+files/**
 metadata.db
 faiss_index.bin
 __pycache__
