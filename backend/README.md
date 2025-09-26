@@ -41,11 +41,29 @@ The server will run at: http://127.0.0.1:8000
 The served or uploaded file at: http://127.0.0.1.8000/files/
 
 
-API EndPoints
+## **3. API EndPoints**
 File Upload: POST /uploadfiles/ (multiple files)
 Query Text: POST /query/text (query: str, top_k: (int) = 5)
 Query Image: POST /query/image (top_k: int = 5)
+Query File Tree: GET /filetree
 Serve Uploaded Files: GET /files/<filename>
+
+#Sample /filetree response
+{
+  "name": "files",
+  "type": "folder",
+  "children": [
+    {
+      "name": "docs",
+      "type": "folder",
+      "children": [
+        {"name": "book.pdf", "type": "file"},
+        {"name": "notes.txt", "type": "file"}
+      ]
+    },
+    {"name": "image.png", "type": "file"}
+  ]
+}
 
 
 For testing

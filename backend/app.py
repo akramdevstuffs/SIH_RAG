@@ -4,6 +4,7 @@ from query import query_text, query_image
 from typing import List
 from PIL import Image
 import io
+import os
 from fastapi.staticfiles import StaticFiles
 
 
@@ -11,6 +12,25 @@ app = FastAPI()
 
 # Mount the "files" directory at URL path "/files"
 app.mount("/files", StaticFiles(directory="files"), name="files")
+
+def build_tree(path: str):
+    """Recursively build a nested dict representing the folder structure."""
+    tree = {"name": os.path.basename(path), "type": "folder", "children": []}
+    try:
+        for entry in os.listdir(path):
+            full_path = os.path.join(path, entry)
+            if os.path.isdir(full_path):
+                tree["children"].append(build_tree(full_path))
+            else:
+                tree["children"].append({"name": entry, "type": "file"})
+    except PermissionError:
+        pass  # skip folders without permission
+    return tree
+
+@app.get("/filetree")
+async def get_file_tree():
+    tree = build_tree("files")
+    return tree
 
 
 @app.post("/uploadfiles")
