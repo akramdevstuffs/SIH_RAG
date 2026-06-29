@@ -129,17 +129,13 @@ docker compose build
 
 ### Start services
 
-```bash
-docker compose up
-```
-
-### Start API
+#### Start API
 
 ```bash
 docker compose up api
 ```
 
-### Start Ingestion worker
+#### Start Ingestion worker
 
 ```bash
 docker compose up ingestion
@@ -220,7 +216,7 @@ Example response:
 ### Download Document
 
 ```http
-GET /download/{file_id}
+GET /upload/download/{file_id}
 ```
 
 Streams the original uploaded document.
