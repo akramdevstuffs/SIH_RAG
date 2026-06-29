@@ -1,7 +1,4 @@
-venv
-files/**
-# To files dir in git
-!files/.gitkeep
-metadata.db
-faiss_index.bin
+data/*
+**.egg-info
 __pycache__
+.env
