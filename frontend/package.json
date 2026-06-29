@@ -10,16 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@google/genai": "^1.21.0",
     "@remixicon/react": "^4.6.0",
     "@tailwindcss/vite": "^4.1.13",
-
     "axios": "^1.12.2",
-    "lucide-react": "^0.544.0",
-
     "ldrs": "^1.1.7",
+    "lucide-react": "^0.544.0",
     "marked": "^16.3.0",
-
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "remixicon": "^4.6.0",
@@ -28,6 +24,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
+    "@tailwindcss/oxide-linux-x64-gnu": "^4.3.1",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",

@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rag-system"
+version = "0.1.0"
+authors = [
+    {name="akramdevstuffs"}
+]
+
+requires-python = ">=3.11"
+
+dependencies = [
+    "celery",
+    "redis",
+    "psycopg[binary]",
+    "minio",
+    "qdrant-client"
+]
+
+[project.optional-dependencies]
+
+api = [
+    "fastapi[standard]",
+]
+
+embedding = [
+    "sentence-transformers",
+]
+
+ingestion = [
+    "numpy",
+    "pypdf",
+    "pillow",
+]
+
+all = [
+    "fastapi[standard]",
+    "sentence-transformers",
+    "numpy",
+    "pypdf",
+    "pillow",
+]
+
+dev = [
+    "pytest",
+    "reportlab"
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
