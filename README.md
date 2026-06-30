@@ -32,21 +32,28 @@ An AI-powered Retrieval-Augmented Generation (RAG) platform for document ingesti
 
 ```mermaid
 flowchart TD
+    O[Download Document] --> P[FastAPI Download API]
+    P --> C[(MinIO)]
+
     A[Upload Document] --> B[FastAPI Upload API]
-    B --> C[Celery Task Queue]
-    C --> D[Ingestion Worker]
 
-    D --> E[Extract Text]
-    D --> F[Generate Embeddings]
+    B --> C
+    B --> D[Celery Task Queue]
 
-    E --> G[(PostgreSQL)]
-    F --> H[(Qdrant)]
+    D --> E[Ingestion Worker]
 
-    I[Search Query] --> J[FastAPI Search API]
-    J --> K[Embed Query]
-    K --> H
-    H --> L[Cross Encoder]
-    L --> M[Ranked Results]
+    E --> C
+    E --> F[Extract Text]
+    F --> G[Generate Embeddings]
+
+    F --> H[(PostgreSQL)]
+    G --> I[(Qdrant)]
+
+    J[Search Query] --> K[FastAPI Search API]
+    K --> L[Embed Query]
+    L --> I
+    I --> M[Cross Encoder]
+    M --> N[Ranked Results]
 ```
 
 ## Tech Stack
@@ -57,6 +64,7 @@ flowchart TD
 - Celery
 - Redis
 - PostgreSQL
+- MinIO
 - Qdrant
 - Sentence Transformers
 - Docker
@@ -90,9 +98,9 @@ frontend/
 ## Retrieval Pipeline
 
 1. User uploads document.
-2. API stores the file.
-3. Celery worker extracts text.
-4. Text is chunked.
+2. API stores the file in **MinIO**.
+3. Celery worker download the file from MinIO.
+4. Text is extracted and chunked.
 5. Chunks are embedded.
 6. Embeddings are indexed in Qdrant.
 7. Metadata is stored in PostgreSQL.
@@ -101,6 +109,7 @@ frontend/
    - Similar vectors are retrieved.
    - Cross-encoder reranks candidates.
    - Top passages are returned.
+9. Original File can downloaded through API.
 
 ## Getting Started
 
